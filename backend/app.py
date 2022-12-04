@@ -3,6 +3,7 @@ from flask_cors import CORS, cross_origin
 from pytube import YouTube
 import re
 import json
+import base64
 
 YOUTUBE_REGEX = re.compile(
     r"^(https?:\/\/)?(www\.)?youtube\.com\/(watch\?v=)?[a-zA-Z0-9_-]+$"
@@ -31,11 +32,15 @@ def youtube_link():
         # Get the URL of the audio stream
         audio_url = audio_stream.url
 
+        # Encode the audio URL to base64 encoding
+        audio_url_base64 = base64.b64encode(audio_url.encode())
+
         # Return JSON to user on client side
         response = jsonify(
             {
                 "link": link,
                 "title": title,
+                "audio_url_base64": str(audio_url_base64),
                 "audio_url": audio_url,
             }
         )

@@ -1,8 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { Howl, Howler } from 'howler';
 
 function App() {
   const [inputText, setInputText] = useState("");
-  const [content, setContent] = useState({});
+  const [content, setContent] = useState();
+  const [player, setPlayer] = useState();
+  const [error, setError] = useState("");
 
   const fetchURLInfo = (e) => {
     e.preventDefault();
@@ -19,7 +22,32 @@ function App() {
 
     fetch(url, options)
       .then(response => response.json())
-      .then(data => setContent(data))
+      .then(data => handleContent(data))
+  }
+
+  // Create a new music object everytime the content changes
+  useEffect(() => {
+    if (content) {
+      let sample = new Howl({
+        src: [content["audio_url"]],
+        ext: [".m4a"],
+        autoplay: true,
+        html5: true,
+      })
+      setPlayer(sample);
+    }
+  }, [content])
+
+  const handleContent = (data) => {
+    // If the data that we get back is just an error, then set the error not content
+    if (data["error"]) {
+      console.log("Error!")
+      setError(data["error"]);
+    } else {
+      let audio_encoded = atob(data["audio_url_base64"]);
+      console.log("Got here!")
+      setContent(data);
+    }
   }
 
   console.log(content);
@@ -35,7 +63,8 @@ function App() {
         />
         <button onClick={(e) => fetchURLInfo(e)}>Download</button>
       </form>
-      {content ? <p>{content["title"]}</p> : <p></p>}
+      {content ? <p>{content["title"]}</p> : null}
+      {player ? <button onClick={Howler.play}>Play</button> : null}
     </div>
   );
 }
