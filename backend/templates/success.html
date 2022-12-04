@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block body %}
+<h2>Success!</h2>
+<p>{{ link }}</p>
+<p>{{ title }}</p>
+<strong>Chosen stream: {{ stream }}</strong>
+<br>
+<audio src="{{ audio_url }}" controls></audio>
+{% endblock %}
