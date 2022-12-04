@@ -1,70 +1,71 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Howl, Howler } from 'howler';
 
 function App() {
   const [inputText, setInputText] = useState("");
-  const [content, setContent] = useState();
-  const [player, setPlayer] = useState();
-  const [error, setError] = useState("");
+  const [response, setResponse] = useState(null);
+  const [player, setPlayer] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
-  const fetchURLInfo = (e) => {
-    e.preventDefault();
-    const url = "http://localhost:5000/youtube";
+  const fetchSampleInfo = () => {
+    // Create some JSON to send to the POST request for the Flask API
+    const requestData = { ytLink: inputText };
+    const requestBody = JSON.stringify(requestData);
 
-    // Options for the fetch function to make it a POST
-    const options = {
+    // Fetch the JSON back from the Flask API
+    fetch("http://localhost:5000/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ ytlink: inputText }),
-    };
+      body: requestBody,
+    })
+      .then((res) => res.json())
+      .then((json) => setResponse(json));
+  };
 
-    fetch(url, options)
-      .then(response => response.json())
-      .then(data => handleContent(data))
-  }
-
-  // Create a new music object everytime the content changes
+  // Every time the response gets updated (new link is converted)
   useEffect(() => {
-    if (content) {
-      let sample = new Howl({
-        src: [content["audio_url"]],
-        ext: [".m4a"],
-        autoplay: true,
+    // If the response is not null
+    if (response) {
+
+      // If there is already a music player present
+      if (player) {
+        // Then set it to not playing and destroy it
+        setIsPlaying(!isPlaying);
+        player.unload();
+      }
+
+      // From a blank slate, create a new player object
+      const currentPlayer = new Howl({
+        src: response["audio_url"],
         html5: true,
       })
-      setPlayer(sample);
-    }
-  }, [content])
 
-  const handleContent = (data) => {
-    // If the data that we get back is just an error, then set the error not content
-    if (data["error"]) {
-      console.log("Error!")
-      setError(data["error"]);
-    } else {
-      let audio_encoded = atob(data["audio_url_base64"]);
-      console.log("Got here!")
-      setContent(data);
+      // Store the player in state
+      setPlayer(currentPlayer);
     }
+  }, [response])
+
+  const handlePlay = () => {
+    // If the player is already playing, then pause it
+    if (isPlaying) {
+      player.pause();
+    } else {
+      player.play();
+    }
+
+    // Set opposite of isPlaying because we just changed this
+    setIsPlaying(!isPlaying);
   }
 
-  console.log(content);
-  console.log(inputText);
+  console.log(response);
 
   return (
     <div>
-      <form>
-        <input
-          onChange={(e) => setInputText(e.target.value)}
-          value={inputText}
-          type="text" name="ytlink" required placeholder="YouTube URL"
-        />
-        <button onClick={(e) => fetchURLInfo(e)}>Download</button>
-      </form>
-      {content ? <p>{content["title"]}</p> : null}
-      {player ? <button onClick={Howler.play}>Play</button> : null}
+      <input value={inputText} onChange={(e) => setInputText(e.target.value)} type="text" />
+      <button onClick={fetchSampleInfo}>Submit</button>
+      {player && <button onClick={handlePlay}>{isPlaying ? "Pause" : "Play"}</button>}
     </div>
   );
 }
